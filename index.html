@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#123b5d">
+<title>EssSal Accounting ERP</title>
+<style>
+:root{--navy:#123b5d;--blue:#1769aa;--green:#16834a;--red:#c0392b;--bg:#f3f6f9;--line:#dce3ea;--muted:#64748b}
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,-apple-system,Segoe UI,Arial;background:var(--bg);color:#182433}
+header{background:var(--navy);color:white;padding:15px 16px;position:sticky;top:0;z-index:5;box-shadow:0 2px 8px #0002}
+header b{font-size:19px}header small{display:block;color:#d8e6f2;margin-top:2px}
+nav{display:flex;gap:7px;overflow:auto;padding:10px;background:white;border-bottom:1px solid var(--line);position:sticky;top:65px;z-index:4}
+nav button{white-space:nowrap;border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:20px;color:#243447}
+nav button.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+main{max-width:1000px;margin:auto;padding:14px}
+.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:13px;box-shadow:0 1px 3px #1020300a}
+h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+input,select,textarea{width:100%;border:1px solid #cbd5df;border-radius:9px;padding:10px;font:inherit;background:#fff;min-width:0}
+textarea{min-height:65px;resize:vertical}
+button{cursor:pointer;font:inherit}
+.primary,.secondary,.danger,.add{border:0;border-radius:9px;padding:10px 13px}
+.primary{background:var(--navy);color:white}.secondary{background:#eaf1f7;color:var(--navy)}.danger{background:#fdecea;color:var(--red)}.add{background:#e9f6ee;color:var(--green);width:100%;margin-top:8px}
+.rowhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+.entry{border:1px solid var(--line);border-radius:12px;padding:11px;margin:9px 0}
+.entry.debit{border-left:4px solid var(--green)}.entry.credit{border-left:4px solid var(--blue)}
+.entrygrid{display:grid;grid-template-columns:2fr 1fr 1fr 1.3fr;gap:8px}
+.entrygrid .wide{grid-column:1/-1}
+.totals{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.total{padding:13px;border-radius:11px;background:#f2f7fb}.total strong{display:block;font-size:21px;margin-top:4px}
+.green{color:var(--green)}.blue{color:var(--blue)}.red{color:var(--red)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:left}th{background:#f5f8fb;color:#425466}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{padding:13px;border-radius:12px;background:#f1f6fa}.kpi span{font-size:12px;color:var(--muted)}.kpi b{display:block;font-size:20px;margin-top:5px}
+.hidden{display:none!important}.muted{color:var(--muted);font-size:12px}.status{padding:8px 10px;border-radius:8px;background:#fff8e6;color:#805b00;font-size:13px}
+@media(min-width:700px){.cards{grid-template-columns:repeat(4,1fr)}.entrygrid{grid-template-columns:2fr .8fr .8fr 1.2fr 1.5fr auto}.entrygrid .wide{grid-column:auto}}
+@media(max-width:420px){main{padding:9px}.panel{padding:11px}.entrygrid{grid-template-columns:1fr 1fr}.entrygrid .account{grid-column:1/-1}.entrygrid .wide{grid-column:1/-1}.entrygrid .amount{grid-column:1/-1}.grid{gap:8px}}
+</style>
+</head>
+<body>
+<header><b>EssSal Accounting ERP</b><small>Mobile double-entry accounting • Offline prototype</small></header>
+<nav id="tabs">
+<button class="active" data-tab="voucher">Voucher Entry</button><button data-tab="dashboard">Dashboard</button><button data-tab="trial">Trial Balance</button><button data-tab="pl">Profit &amp; Loss</button><button data-tab="ledger">Ledger</button><button data-tab="accounts">Accounts</button>
+</nav>
+<main>
+<section id="voucher" class="view">
+<div class="panel">
+<h2>New Journal Voucher</h2>
+<div class="grid">
+<div><label>Voucher Date</label><input type="date" id="vdate"></div>
+<div><label>Voucher No.</label><input id="vno" readonly></div>
+</div>
+<div style="margin-top:10px"><label>Voucher Narration</label><textarea id="vnarr" placeholder="Overall voucher narration"></textarea></div>
+</div>
+<div class="panel">
+<div class="rowhead"><h3 class="green">Debit Entries</h3><span class="muted">Debit side</span></div>
+<div id="debitRows"></div><button class="add" onclick="addRow('debit')">＋ Add Debit Row</button>
+</div>
+<div class="panel">
+<div class="rowhead"><h3 class="blue">Credit Entries</h3><span class="muted">Credit side</span></div>
+<div id="creditRows"></div><button class="add" onclick="addRow('credit')">＋ Add Credit Row</button>
+</div>
+<div class="panel">
+<div class="totals">
+<div class="total"><span class="muted">Total Debit</span><strong class="green" id="debitTotal">Rs. 0.00</strong></div>
+<div class="total"><span class="muted">Total Credit</span><strong class="blue" id="creditTotal">Rs. 0.00</strong></div>
+</div>
+<p id="balanceMsg" class="status" style="margin-bottom:0">Enter debit and credit amounts. Both totals must match to save.</p>
+<div class="actions"><button class="primary" onclick="saveVoucher()">Save Voucher</button><button class="secondary" onclick="resetVoucher()">Clear Form</button></div>
+</div>
+</section>
+
+<section id="dashboard" class="view hidden">
+<div class="panel"><h2>Accounting Dashboard</h2><div class="cards">
+<div class="kpi"><span>Total Debit (all vouchers)</span><b id="dashDebit">Rs. 0</b></div>
+<div class="kpi"><span>Total Credit (all vouchers)</span><b id="dashCredit">Rs. 0</b></div>
+<div class="kpi"><span>Net Profit / (Loss)</span><b id="dashProfit">Rs. 0</b></div>
+<div class="kpi"><span>Saved Vouchers</span><b id="dashCount">0</b></div>
+</div></div>
+<div class="panel"><h2>Recent Vouchers</h2><div id="recent"></div></div>
+</section>
+
+<section id="trial" class="view hidden"><div class="panel"><h2>Trial Balance</h2><div class="muted">Closing balances by account. Debit and credit totals should agree.</div><div id="trialTable"></div></div></section>
+<section id="pl" class="view hidden"><div class="panel"><h2>Profit &amp; Loss Account</h2><div id="plReport"></div></div></section>
+<section id="ledger" class="view hidden"><div class="panel"><h2>General Ledger</h2><label>Select Account</label><select id="ledgerAccount" onchange="renderLedger()"></select><div id="ledgerTable"></div></div></section>
+<section id="accounts" class="view">
+<div class="panel"><h2>Chart of Accounts</h2><div class="grid">
+<div><label>Account Code</label><input id="acode" placeholder="e.g. 1001"></div>
+<div><label>Account Name</label><input id="aname" placeholder="Cash in Hand"></div>
+<div><label>Account Type</label><select id="atype"><option>Asset</option><option>Liability</option><option>Capital</option><option>Income</option><option>Expense</option></select></div>
+<div style="display:flex;align-items:end"><button class="primary" style="width:100%" onclick="addAccount()">Add Account</button></div>
+</div></div>
+<div class="panel"><div id="accountTable"></div></div>
+</section>
+</main>
+<script>
+const defaultAccounts=[
+{code:'1001',name:'Cash in Hand',type:'Asset'},{code:'1002',name:'Bank Account',type:'Asset'},
+{code:'1101',name:'Accounts Receivable',type:'Asset'},{code:'2001',name:'Accounts Payable',type:'Liability'},
+{code:'3001',name:'Owner Capital',type:'Capital'},{code:'4001',name:'Sales / Income',type:'Income'},
+{code:'5001',name:'Purchases',type:'Expense'},{code:'5101',name:'Salaries Expense',type:'Expense'},
+{code:'5201',name:'Rent Expense',type:'Expense'}
+];
+let accounts=JSON.parse(localStorage.getItem('esssal_accounts')||'null')||defaultAccounts;
+let vouchers=JSON.parse(localStorage.getItem('esssal_vouchers')||'[]');
+let rowSeq=0;
+const money=n=>'Rs. '+Number(n||0).toLocaleString('en-PK',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function persist(){localStorage.setItem('esssal_accounts',JSON.stringify(accounts));localStorage.setItem('esssal_vouchers',JSON.stringify(vouchers))}
+function nextNo(){return 'JV-'+String(vouchers.length+1).padStart(4,'0')}
+function accountOptions(){return '<option value="">Select account</option>'+accounts.map(a=>`<option value="${esc(a.code)}">${esc(a.code)} - ${esc(a.name)}</option>`).join('')}
+function addRow(side){
+ const id=++rowSeq, host=document.getElementById(side+'Rows');
+ const div=document.createElement('div');div.className='entry '+side;div.id='row'+id;
+ div.innerHTML=`<div class="entrygrid">
+ <div class="account"><label>Account</label><select class="acct">${accountOptions()}</select></div>
+ <div><label>Qty (optional)</label><input class="qty" type="number" min="0" step="any" placeholder="Qty" oninput="calcRow(${id})"></div>
+ <div><label>Rate (optional)</label><input class="rate" type="number" min="0" step="any" placeholder="Rate" oninput="calcRow(${id})"></div>
+ <div class="amount"><label>Amount (Rs.)</label><input class="amt" type="number" min="0" step="0.01" placeholder="Amount" oninput="updateTotals()"></div>
+ <div class="wide"><label>Row Narration</label><input class="narr" placeholder="Optional entry details"></div>
+ <div style="display:flex;align-items:end"><button class="danger" onclick="document.getElementById('row${id}').remove();updateTotals()">Remove</button></div>
+ </div>`;
+ host.appendChild(div);
+}
+function calcRow(id){const r=document.getElementById('row'+id);const q=r.querySelector('.qty').value,rate=r.querySelector('.rate').value;if(q!==''&&rate!==''){r.querySelector('.amt').value=(Number(q)*Number(rate)).toFixed(2)}updateTotals()}
+function getRows(side){return [...document.querySelectorAll('#'+side+'Rows .entry')].map(r=>({account:r.querySelector('.acct').value,qty:r.querySelector('.qty').value,rate:r.querySelector('.rate').value,amount:Number(r.querySelector('.amt').value||0),narration:r.querySelector('.narr').value})).filter(x=>x.account||x.amount||x.qty||x.rate||x.narration)}
+function updateTotals(){
+ const d=getRows('debit').reduce((s,x)=>s+x.amount,0),c=getRows('credit').reduce((s,x)=>s+x.amount,0);
+ document.getElementById('debitTotal').textContent=money(d);document.getElementById('creditTotal').textContent=money(c);
+ const msg=document.getElementById('balanceMsg');if(Math.abs(d-c)<0.005&&d>0){msg.textContent='Balanced: Debit and Credit are equal. Ready to save.';msg.style.background='#e9f6ee';msg.style.color='#176b3a'}else{msg.textContent='Not balanced yet. Debit: '+money(d)+' | Credit: '+money(c)+'.';msg.style.background='#fff8e6';msg.style.color='#805b00'}
+ return {d,c};
+}
+function saveVoucher(){
+ const debit=getRows('debit'),credit=getRows('credit'),{d,c}=updateTotals();
+ if(!debit.length||!credit.length||debit.some(x=>!x.account||x.amount<=0)||credit.some(x=>!x.account||x.amount<=0)){alert('Please select an account and enter an amount greater than zero on every debit and credit row.');return}
+ if(Math.abs(d-c)>=0.005){alert('Voucher cannot be saved. Total Debit and Credit must be equal.');return}
+ const v={no:document.getElementById('vno').value,date:document.getElementById('vdate').value,narration:document.getElementById('vnarr').value,debit,credit,total:d};
+ vouchers.push(v);persist();alert('Voucher '+v.no+' saved successfully on this device.');resetVoucher();renderAll();
+}
+function resetVoucher(){document.getElementById('vnarr').value='';document.getElementById('debitRows').innerHTML='';document.getElementById('creditRows').innerHTML='';document.getElementById('vdate').value=new Date().toISOString().slice(0,10);document.getElementById('vno').value=nextNo();addRow('debit');addRow('credit');updateTotals()}
+function addAccount(){let code=document.getElementById('acode').value.trim(),name=document.getElementById('aname').value.trim(),type=document.getElementById('atype').value;if(!code||!name){alert('Enter account code and name.');return}if(accounts.some(a=>a.code===code)){alert('This account code already exists.');return}accounts.push({code,name,type});persist();document.getElementById('acode').value='';document.getElementById('aname').value='';renderAll()}
+function balances(){let b={};accounts.forEach(a=>b[a.code]={...a,debit:0,credit:0});vouchers.forEach(v=>{v.debit.forEach(x=>{if(!b[x.account])return;b[x.account].debit+=x.amount});v.credit.forEach(x=>{if(!b[x.account])return;b[x.account].credit+=x.amount})});return b}
+function net(a){let n=a.debit-a.credit;return n}
+function renderTrial(){let b=Object.values(balances()),td=0,tc=0;let rows=b.map(a=>{let n=net(a),d=Math.max(n,0),c=Math.max(-n,0);td+=d;tc+=c;return `<tr><td>${esc(a.code)}</td><td>${esc(a.name)}</td><td class="num">${d?money(d):'—'}</td><td class="num">${c?money(c):'—'}</td></tr>`}).join('');document.getElementById('trialTable').innerHTML=`<div style="overflow:auto"><table><thead><tr><th>Code</th><th>Account</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead><tbody>${rows}<tr><th colspan="2">Total</th><th class="num">${money(td)}</th><th class="num">${money(tc)}</th></tr></tbody></table></div>`}
+function renderPL(){let b=Object.values(balances()),income=b.filter(a=>a.type==='Income').reduce((s,a)=>s+(a.credit-a.debit),0),expense=b.filter(a=>a.type==='Expense').reduce((s,a)=>s+(a.debit-a.credit),0),profit=income-expense;document.getElementById('plReport').innerHTML=`<table><tr><th>Particulars</th><th class="num">Amount</th></tr><tr><td>Total Income</td><td class="num">${money(income)}</td></tr><tr><td>Total Expenses</td><td class="num">${money(expense)}</td></tr><tr><th>${profit>=0?'Net Profit':'Net Loss'}</th><th class="num ${profit>=0?'green':'red'}">${money(Math.abs(profit))}</th></tr></table>`}
+function renderLedger(){let sel=document.getElementById('ledgerAccount'),code=sel.value;let rows=[];vouchers.forEach(v=>{[...v.debit.map(x=>({...x,side:'Debit'})),...v.credit.map(x=>({...x,side:'Credit'}))].filter(x=>x.account===code).forEach(x=>rows.push({date:v.date,no:v.no,...x,main:v.narration}))});let run=0;document.getElementById('ledgerTable').innerHTML=rows.length?`<div style="overflow:auto"><table><tr><th>Date</th><th>Voucher</th><th>Narration</th><th>Debit</th><th>Credit</th><th>Balance</th></tr>${rows.map(x=>{run+=x.side==='Debit'?x.amount:-x.amount;return `<tr><td>${esc(x.date)}</td><td>${esc(x.no)}</td><td>${esc(x.narration||x.main)}</td><td class="num">${x.side==='Debit'?money(x.amount):'—'}</td><td class="num">${x.side==='Credit'?money(x.amount):'—'}</td><td class="num">${money(Math.abs(run))} ${run>=0?'Dr':'Cr'}</td></tr>`}).join('')}</table></div>`:'<p class="muted">No entries for this account yet.</p>'}
+function renderAccounts(){document.getElementById('accountTable').innerHTML=`<div style="overflow:auto"><table><tr><th>Code</th><th>Account Name</th><th>Type</th></tr>${accounts.map(a=>`<tr><td>${esc(a.code)}</td><td>${esc(a.name)}</td><td>${esc(a.type)}</td></tr>`).join('')}</table></div>`}
+function renderDashboard(){let b=Object.values(balances()),debit=vouchers.reduce((s,v)=>s+v.total,0),credit=debit,inc=b.filter(a=>a.type==='Income').reduce((s,a)=>s+a.credit-a.debit,0),exp=b.filter(a=>a.type==='Expense').reduce((s,a)=>s+a.debit-a.credit,0),p=inc-exp;document.getElementById('dashDebit').textContent=money(debit);document.getElementById('dashCredit').textContent=money(credit);document.getElementById('dashProfit').textContent=(p<0?'−':'')+money(Math.abs(p));document.getElementById('dashCount').textContent=vouchers.length;document.getElementById('recent').innerHTML=vouchers.length?`<div style="overflow:auto"><table><tr><th>Date</th><th>Voucher</th><th>Narration</th><th class="num">Amount</th></tr>${vouchers.slice(-8).reverse().map(v=>`<tr><td>${esc(v.date)}</td><td>${esc(v.no)}</td><td>${esc(v.narration)}</td><td class="num">${money(v.total)}</td></tr>`).join('')}</table></div>`:'<p class="muted">No vouchers saved yet.</p>'}
+function renderAll(){renderTrial();renderPL();renderAccounts();renderDashboard();let s=document.getElementById('ledgerAccount'),old=s.value;s.innerHTML=accountOptions();if(old)s.value=old;renderLedger()}
+document.querySelectorAll('nav button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.view').forEach(x=>x.classList.add('hidden'));document.getElementById(btn.dataset.tab).classList.remove('hidden');renderAll()}));
+document.getElementById('vdate').value=new Date().toISOString().slice(0,10);document.getElementById('vno').value=nextNo();addRow('debit');addRow('credit');renderAll();
+</script>
+
+<script>
+window.exportAppData = function () {
+  return JSON.stringify({
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    accounts: JSON.parse(localStorage.getItem('esssal_accounts') || '[]'),
+    vouchers: JSON.parse(localStorage.getItem('esssal_vouchers') || '[]')
+  });
+};
+window.importAppData = function (raw) {
+  const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if (!data || !Array.isArray(data.accounts) || !Array.isArray(data.vouchers)) {
+    throw new Error('Backup file format is invalid.');
+  }
+  localStorage.setItem('esssal_accounts', JSON.stringify(data.accounts));
+  localStorage.setItem('esssal_vouchers', JSON.stringify(data.vouchers));
+  location.reload();
+  return 'ok';
+};
+</script>
+
+</body></html>
